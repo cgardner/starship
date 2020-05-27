@@ -122,6 +122,40 @@ fn test_works_with_unborn_master() -> io::Result<()> {
     remove_dir_all(repo_dir)
 }
 
+#[test]
+fn test_prefix() -> io::Result<()> {
+    let repo_dir = common::create_fixture_repo()?;
+
+    Command::new("git")
+        .args(&["checkout", "-b", "1337_hello_world"])
+        .current_dir(repo_dir.as_path())
+        .output()?;
+
+    let config = toml::from_str(
+        "
+         [git_branch]
+             prefix = \"hello \"
+        ",
+    )
+    .unwrap();
+
+    let output = common::render_module("git_branch")
+        .use_config(config)
+        .arg("--path")
+        .arg(&repo_dir)
+        .output()?;
+    let actual = String::from_utf8(output.stdout).unwrap();
+
+    let expected = format!(
+        "hello {} ",
+        Color::Purple
+            .bold()
+            .paint(format!("\u{e0a0} 1337_hello_world")),
+    );
+    assert_eq!(expected, actual);
+    remove_dir_all(repo_dir)
+}
+
 fn test_truncate_length(
     branch_name: &str,
     truncate_length: i64,
